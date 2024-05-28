@@ -1,14 +1,14 @@
 use std::fs;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 fn main() {
     // Turn this into a function for reading dir as input
     // Can implement full logging levels with this 
     let inspection = inspect_dir(".");
     println!("found dirs {:?}", inspection);
-    // Options read contents of file, grep for key phrase
-    // Get hashes of files
+    // Get hashes of files MD5 and SHA 256 
 
-    // DONE Get file sizes
     // recursively inspect each directory found 
 }
 
@@ -30,7 +30,10 @@ pub fn inspect_dir(file_path: &str) -> Vec<String> {
                                             if metadata.is_dir() {
                                                 found_dirs.push(path.display().to_string())
                                             } else {
-                                                println!("size of file is {:?}", metadata.len())
+                                                println!("size of file is {:?}", metadata.len());
+                                                println!("Printing lines of file");
+                                                // TODO gate this with cli input 
+                                                read_file_by_line(&path.display().to_string(), &"test".to_string())
                                             }
                                             },
                             Err(err) => {
@@ -50,4 +53,19 @@ pub fn inspect_dir(file_path: &str) -> Vec<String> {
     }
 
     return found_dirs
+}
+
+pub fn read_file_by_line(file_path: &str, search_term: &str) {
+    if let Ok(file) = File::open(file_path) {
+        let mut buf_reader = BufReader::new(file);
+
+        for line in buf_reader.lines() {
+            if let Ok(line_str) = line {
+                if line_str.contains(search_term){
+                    println!("{}", line_str)
+                }
+            }
+        }
+    }
+
 }
