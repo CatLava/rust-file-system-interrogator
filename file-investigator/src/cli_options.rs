@@ -12,5 +12,12 @@ pub struct FileArgs {
 
     // Password to encrypt file with
     #[arg(short, long)]
-    pub grep_files: String,
+    pub grep_files: Option<String>,
+
+    #[arg(short, long, default_value_t = false)]
+    pub compute_hashes: bool,
+
+    #[arg(short, long, default_value_t = false)]
+    pub directory_recursive: bool,
+
 }
