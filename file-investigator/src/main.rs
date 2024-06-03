@@ -14,21 +14,18 @@ fn main() {
     let dir_inpection = file_args.start_file_path;
     let inspection = inspect_dir(&dir_inpection);
     println!("found dirs {:?}", inspection);
-    // Get hashes of files MD5 and SHA 256
-
-    // recursively inspect each directory found
-    // Check walkDir crate to run through this 
+    // recursion should occur out here instead of inside the function itself, this will allow for master tracking 
 }
 
 #[derive(Debug)]
 pub struct FileCrawlStats{
     file_path: String,
     number_of_files: u16,
-    //directory_list: Vec<String>
+    directory_list: Vec<String>
 }
 // Inspect a directory, if file is directory, add to vec and return vec
 // To do make return object a result
-pub fn inspect_dir(file_path: &str) -> Vec<String> {
+pub fn inspect_dir(file_path: &str) -> FileCrawlStats {
     let mut found_dirs: Vec<String> = vec![];
     let mut files_inspected = 0;
     match fs::read_dir(file_path) {
@@ -75,19 +72,21 @@ pub fn inspect_dir(file_path: &str) -> Vec<String> {
     }
     println!("found dirs {:?}", found_dirs);
     // If recursively called flag initiated
+    let mut mut_full_list = vec![];
     for directory in found_dirs.iter() {
         println!("{:?}", directory);
-        inspect_dir(&directory);
+        mut_full_list.push(inspect_dir(&directory));
     }
     println!("total files inspected {:?}", files_inspected);
     let file_stats = FileCrawlStats {
         file_path : file_path.to_string(),
         number_of_files : files_inspected,
-        //directory_list: found_dirs
+        directory_list: found_dirs
     };
     println!("file stats {:?}", file_stats);
+    println!("full stats {:?}", mut_full_list);
 
-    return found_dirs;
+    return file_stats;
 }
 
 pub fn read_file_by_line(file_path: &str, search_term: &str) {
