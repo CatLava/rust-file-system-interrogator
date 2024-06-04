@@ -13,8 +13,30 @@ fn main() {
 
     let dir_inpection = file_args.start_file_path;
     let inspection = inspect_dir(&dir_inpection);
-    println!("found dirs {:?}", inspection);
+    let mut dir_inspection_ls = inspection.directory_list;
+    let mut total_cnt = 0;
+    // for directory in inspection.directory_list.iter() {
+    //     println!("Futther inspections");
+    //     total_cnt +=1;
+    //     inspect_dir(&directory);
+    // }
+    while dir_inspection_ls.len() > 0 {
+        total_cnt +=1;
+        let inspected_item = dir_inspection_ls.pop();
+        if let Some(item) = inspected_item {
+            println!("Popped item: {}", item);
+            let inpection_again = inspect_dir(&item);
+            if inpection_again.directory_list.len() > 0 {
+                dir_inspection_ls.extend(inpection_again.directory_list)
+            }
+        } else {
+            println!("The list was empty");
+        }
+    }
+    // then do a for loop thru the dirs and gather all the information
+    // add that information to master tracking list 
     // recursion should occur out here instead of inside the function itself, this will allow for master tracking 
+    println!("total inspection {:?}", total_cnt)
 }
 
 #[derive(Debug)]
@@ -72,11 +94,9 @@ pub fn inspect_dir(file_path: &str) -> FileCrawlStats {
     }
     println!("found dirs {:?}", found_dirs);
     // If recursively called flag initiated
-    let mut mut_full_list = vec![];
-    for directory in found_dirs.iter() {
-        println!("{:?}", directory);
-        mut_full_list.push(inspect_dir(&directory));
-    }
+    // for directory in found_dirs.iter() {
+    //     inspect_dir(&directory);
+    // }
     println!("total files inspected {:?}", files_inspected);
     let file_stats = FileCrawlStats {
         file_path : file_path.to_string(),
@@ -84,7 +104,6 @@ pub fn inspect_dir(file_path: &str) -> FileCrawlStats {
         directory_list: found_dirs
     };
     println!("file stats {:?}", file_stats);
-    println!("full stats {:?}", mut_full_list);
 
     return file_stats;
 }
