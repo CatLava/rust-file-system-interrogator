@@ -12,35 +12,59 @@ fn main() {
     let file_args: cli_options::FileArgs = cli_options::FileArgs::parse();
 
     let dir_inpection = file_args.start_file_path;
+    let grep_files = match file_args.grep_files {
+        Some(grep) => GrepOptions {grep_files: true, grep_term: Some(grep)},
+        None => GrepOptions {grep_files: false, grep_term: None}
+    };
+    let recursion_flag = file_args.directory_recursive;
+    println!("Grep files {:?}", grep_files);
     let inspection = inspect_dir(&dir_inpection);
     let mut dir_inspection_ls = inspection.directory_list;
     let mut total_cnt = 0;
+    let mut total_file_ls = vec![];
     // for directory in inspection.directory_list.iter() {
     //     println!("Futther inspections");
     //     total_cnt +=1;
     //     inspect_dir(&directory);
     // }
-    while dir_inspection_ls.len() > 0 {
-        total_cnt +=1;
-        let inspected_item = dir_inspection_ls.pop();
-        if let Some(item) = inspected_item {
-            println!("Popped item: {}", item);
-            let inpection_again = inspect_dir(&item);
-            if inpection_again.directory_list.len() > 0 {
-                dir_inspection_ls.extend(inpection_again.directory_list)
+    if recursion_flag {
+        while dir_inspection_ls.len() > 0 {
+            total_cnt +=1;
+            let inspected_item = dir_inspection_ls.pop();
+            if let Some(item) = inspected_item {
+                println!("Popped item: {}", item);
+                total_file_ls.push(item.clone());
+                let inpection_again = inspect_dir(&item);
+                if inpection_again.directory_list.len() > 0 {
+                    dir_inspection_ls.extend(inpection_again.directory_list)
+                }
+            } else {
+                println!("The list was empty");
             }
-        } else {
-            println!("The list was empty");
         }
     }
     // then do a for loop thru the dirs and gather all the information
     // add that information to master tracking list 
     // recursion should occur out here instead of inside the function itself, this will allow for master tracking 
-    println!("total inspection {:?}", total_cnt)
+    println!("total inspection {:?}", total_cnt);
+    println!("all files {:?} : ", total_file_ls)
 }
 
 #[derive(Debug)]
+pub struct GrepOptions {
+    grep_files: bool, // default should be false
+    grep_term: Option<String>
+}
+ #[derive(Debug)]
 pub struct FileCrawlStats{
+    file_path: String,
+    number_of_files: u16,
+    // Total file sizes? 
+    directory_list: Vec<String>
+}
+
+#[derive(Debug)]
+pub struct TotalCrawlStats{
     file_path: String,
     number_of_files: u16,
     directory_list: Vec<String>
