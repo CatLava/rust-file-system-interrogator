@@ -1,5 +1,5 @@
 // Options for file grep
-// getting the hash of a file 
+// getting the hash of a file
 use clap::Parser;
 
 /// Simple program to greet a person
@@ -19,5 +19,4 @@ pub struct FileArgs {
 
     #[arg(short, long, default_value_t = false)]
     pub directory_recursive: bool,
-
 }

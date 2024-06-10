@@ -1,8 +1,8 @@
+use clap::Parser;
+use md5;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use clap::Parser;
-use md5;
 
 mod cli_options;
 
@@ -13,28 +13,32 @@ fn main() {
 
     let dir_inpection = file_args.start_file_path;
     let grep_files = match file_args.grep_files {
-        Some(grep) => GrepOptions {grep_files: true, grep_term: Some(grep)},
-        None => GrepOptions {grep_files: false, grep_term: None}
+        Some(grep) => {
+            println!("Grep Options set and will look for term {:?}", grep);
+            GrepOptions {
+                grep_files: true,
+                grep_term: Some(grep),
+            }
+        }
+        None => GrepOptions {
+            grep_files: false,
+            grep_term: None,
+        },
     };
     let recursion_flag = file_args.directory_recursive;
     println!("Grep files {:?}", grep_files);
-    let inspection = inspect_dir(&dir_inpection);
+    let inspection = inspect_dir(&dir_inpection, &grep_files);
     let mut dir_inspection_ls = inspection.directory_list;
     let mut total_cnt = 0;
     let mut total_file_ls = vec![];
-    // for directory in inspection.directory_list.iter() {
-    //     println!("Futther inspections");
-    //     total_cnt +=1;
-    //     inspect_dir(&directory);
-    // }
     if recursion_flag {
         while dir_inspection_ls.len() > 0 {
-            total_cnt +=1;
+            total_cnt += 1;
             let inspected_item = dir_inspection_ls.pop();
             if let Some(item) = inspected_item {
                 println!("Popped item: {}", item);
                 total_file_ls.push(item.clone());
-                let inpection_again = inspect_dir(&item);
+                let inpection_again = inspect_dir(&item, &grep_files);
                 if inpection_again.directory_list.len() > 0 {
                     dir_inspection_ls.extend(inpection_again.directory_list)
                 }
@@ -44,8 +48,8 @@ fn main() {
         }
     }
     // then do a for loop thru the dirs and gather all the information
-    // add that information to master tracking list 
-    // recursion should occur out here instead of inside the function itself, this will allow for master tracking 
+    // add that information to master tracking list
+    // recursion should occur out here instead of inside the function itself, this will allow for master tracking
     println!("total inspection {:?}", total_cnt);
     println!("all files {:?} : ", total_file_ls)
 }
@@ -53,25 +57,25 @@ fn main() {
 #[derive(Debug)]
 pub struct GrepOptions {
     grep_files: bool, // default should be false
-    grep_term: Option<String>
+    grep_term: Option<String>,
 }
- #[derive(Debug)]
-pub struct FileCrawlStats{
+#[derive(Debug)]
+pub struct FileCrawlStats {
     file_path: String,
     number_of_files: u16,
-    // Total file sizes? 
-    directory_list: Vec<String>
+    // Total file sizes?
+    directory_list: Vec<String>,
 }
 
 #[derive(Debug)]
-pub struct TotalCrawlStats{
+pub struct TotalCrawlStats {
     file_path: String,
     number_of_files: u16,
-    directory_list: Vec<String>
+    directory_list: Vec<String>,
 }
 // Inspect a directory, if file is directory, add to vec and return vec
 // To do make return object a result
-pub fn inspect_dir(file_path: &str) -> FileCrawlStats {
+pub fn inspect_dir(file_path: &str, grep_info: &GrepOptions) -> FileCrawlStats {
     let mut found_dirs: Vec<String> = vec![];
     let mut files_inspected = 0;
     match fs::read_dir(file_path) {
@@ -81,23 +85,27 @@ pub fn inspect_dir(file_path: &str) -> FileCrawlStats {
                 match entry {
                     Ok(entry) => {
                         let path = entry.path();
-                        println!("{:?}", path);
+                        // println!("{:?}", path);
                         let metadata = fs::metadata(path.clone());
                         match metadata {
                             Ok(metadata) => {
-                                println!("{:?}", metadata.file_type());
-                                println!("is dir {:?}", metadata.is_dir());
+                                // println!("{:?}", metadata.file_type());
+                                // println!("is dir {:?}", metadata.is_dir());
                                 if metadata.is_dir() {
                                     found_dirs.push(path.display().to_string())
                                 } else {
                                     files_inspected += 1;
                                     println!("size of file is {:?}", metadata.len());
-                                    println!("Printing lines of file");
-                                    // TODO gate this with cli input
-                                    // read_file_by_line(
-                                    //     &path.display().to_string(),
-                                    //     &"test".to_string(),
-                                    // );
+                                    if grep_info.grep_files {
+                                        read_file_by_line(
+                                            &path.display().to_string(),
+                                            &grep_info
+                                                .grep_term
+                                                .clone()
+                                                .expect("already unwraped")
+                                                .to_string(),
+                                        );
+                                    }
                                     compute_file_hash(&path.display().to_string());
                                 }
                             }
@@ -123,9 +131,9 @@ pub fn inspect_dir(file_path: &str) -> FileCrawlStats {
     // }
     println!("total files inspected {:?}", files_inspected);
     let file_stats = FileCrawlStats {
-        file_path : file_path.to_string(),
-        number_of_files : files_inspected,
-        directory_list: found_dirs
+        file_path: file_path.to_string(),
+        number_of_files: files_inspected,
+        directory_list: found_dirs,
     };
     println!("file stats {:?}", file_stats);
 
