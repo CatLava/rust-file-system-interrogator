@@ -26,7 +26,6 @@ fn main() {
         },
     };
     let recursion_flag = file_args.directory_recursive;
-    println!("Grep files {:?}", grep_files);
     let inspection = inspect_dir(&dir_inpection, &grep_files);
     let mut dir_inspection_ls = inspection.directory_list;
     let mut total_cnt = 0;
@@ -158,4 +157,13 @@ pub fn compute_file_hash(file_path: &str) {
     let file_contents = fs::read(file_path).expect("Error reading file");
     let hash = md5::compute(&file_contents);
     println!("MD5 hash of {} is: {:?}", file_path, hash);
+}
+
+
+pub fn verify_md5_hash_input(md5_hash_claim: &str) -> bool {
+    let mut hasher = Md5::new();
+    hasher.input(md5_hash_claim.as_bytes());
+    let result = hasher.result();
+    let digest = format!("{:x}", result);
+    digest.len() == 32 && digest.chars().all(|c| c.is_ascii_hexdigit())
 }

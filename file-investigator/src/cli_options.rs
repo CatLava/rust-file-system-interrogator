@@ -16,6 +16,9 @@ pub struct FileArgs {
 
     #[arg(short, long, default_value_t = false)]
     pub compute_hashes: bool,
+    
+    #[arg(short, long, default_value_t = false)]
+    pub match_md5_hash: Option<String>
 
     #[arg(short, long, default_value_t = false)]
     pub directory_recursive: bool,
