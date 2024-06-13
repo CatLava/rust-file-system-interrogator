@@ -1,5 +1,6 @@
 use clap::Parser;
 use md5;
+use md5::Digest;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -12,7 +13,7 @@ fn main() {
     let file_args: cli_options::FileArgs = cli_options::FileArgs::parse();
 
     let dir_inpection = file_args.start_file_path;
-    let grep_files = match file_args.grep_files {
+    let grep_files: GrepOptions = match file_args.grep_files {
         Some(grep) => {
             println!("Grep Options set and will look for term {:?}", grep);
             GrepOptions {
@@ -23,6 +24,29 @@ fn main() {
         None => GrepOptions {
             grep_files: false,
             grep_term: None,
+        },
+    };
+    let display_hash = file_args.compute_hashes;
+    let match_hash = match file_args.match_md5_hash {
+        Some(hash) => {
+            // check if valid hash input
+            let valid_hash = verify_md5_hash_input(&hash);
+            if valid_hash {
+                HashOptions {
+                    display_hash: display_hash,
+                    match_hash: Some(hash),
+                }
+            } else {
+                println!("invalid hash input for {:?}", hash);
+                HashOptions {
+                    display_hash: display_hash,
+                    match_hash: None,
+                }
+            }
+        }
+        None => HashOptions {
+            display_hash: display_hash,
+            match_hash: None,
         },
     };
     let recursion_flag = file_args.directory_recursive;
@@ -58,6 +82,13 @@ pub struct GrepOptions {
     grep_files: bool, // default should be false
     grep_term: Option<String>,
 }
+
+#[derive(Debug)]
+pub struct HashOptions {
+    display_hash: bool,         // default should be false
+    match_hash: Option<String>, // display if there is a match on hash
+}
+
 #[derive(Debug)]
 pub struct FileCrawlStats {
     file_path: String,
@@ -74,7 +105,11 @@ pub struct TotalCrawlStats {
 }
 // Inspect a directory, if file is directory, add to vec and return vec
 // To do make return object a result
-pub fn inspect_dir(file_path: &str, grep_info: &GrepOptions) -> FileCrawlStats {
+pub fn inspect_dir(
+    file_path: &str,
+    grep_info: &GrepOptions,
+    hash_options: &HashOptions,
+) -> FileCrawlStats {
     let mut found_dirs: Vec<String> = vec![];
     let mut files_inspected = 0;
     match fs::read_dir(file_path) {
@@ -105,7 +140,12 @@ pub fn inspect_dir(file_path: &str, grep_info: &GrepOptions) -> FileCrawlStats {
                                                 .to_string(),
                                         );
                                     }
-                                    compute_file_hash(&path.display().to_string());
+                                    if hash_options.display_hash || Some(hash_options.match_hash) {
+                                        let file_hash =
+                                            compute_file_hash(&path.display().to_string());
+                                        // todo need matching logic
+                                        println!("Hash of file is  {:?}", file_hash);
+                                    }
                                 }
                             }
                             Err(err) => {
@@ -153,12 +193,11 @@ pub fn read_file_by_line(file_path: &str, search_term: &str) {
     }
 }
 
-pub fn compute_file_hash(file_path: &str) {
+pub fn compute_file_hash(file_path: &str) -> Digest {
     let file_contents = fs::read(file_path).expect("Error reading file");
     let hash = md5::compute(&file_contents);
-    println!("MD5 hash of {} is: {:?}", file_path, hash);
+    hash
 }
-
 
 pub fn verify_md5_hash_input(md5_hash_claim: &str) -> bool {
     let mut hasher = Md5::new();
