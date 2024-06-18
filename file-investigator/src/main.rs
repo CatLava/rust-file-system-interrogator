@@ -50,7 +50,7 @@ fn main() {
         },
     };
     let recursion_flag = file_args.directory_recursive;
-    let inspection = inspect_dir(&dir_inpection, &grep_files);
+    let inspection = inspect_dir(&dir_inpection, &grep_files, &match_hash);
     let mut dir_inspection_ls = inspection.directory_list;
     let mut total_cnt = 0;
     let mut total_file_ls = vec![];
@@ -61,7 +61,7 @@ fn main() {
             if let Some(item) = inspected_item {
                 println!("Popped item: {}", item);
                 total_file_ls.push(item.clone());
-                let inpection_again = inspect_dir(&item, &grep_files);
+                let inpection_again = inspect_dir(&item, &grep_files, &match_hash);
                 if inpection_again.directory_list.len() > 0 {
                     dir_inspection_ls.extend(inpection_again.directory_list)
                 }
@@ -83,7 +83,7 @@ pub struct GrepOptions {
     grep_term: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HashOptions {
     display_hash: bool,         // default should be false
     match_hash: Option<String>, // display if there is a match on hash
@@ -140,10 +140,15 @@ pub fn inspect_dir(
                                                 .to_string(),
                                         );
                                     }
-                                    if hash_options.display_hash || Some(hash_options.match_hash) {
+                                    if hash_options.display_hash || hash_options.match_hash.is_some() {
                                         let file_hash =
                                             compute_file_hash(&path.display().to_string());
                                         // todo need matching logic
+                                        let match_hash = hash_options.match_hash.clone().unwrap_or("defailt".to_string());
+                                        println!("{:?} : {:?}", match_hash, format!("{:?}", file_hash));
+                                        if format!("{:?}", file_hash) == match_hash {
+                                            println!("MATCHED!")
+                                        }
                                         println!("Hash of file is  {:?}", file_hash);
                                     }
                                 }
@@ -200,9 +205,5 @@ pub fn compute_file_hash(file_path: &str) -> Digest {
 }
 
 pub fn verify_md5_hash_input(md5_hash_claim: &str) -> bool {
-    let mut hasher = Md5::new();
-    hasher.input(md5_hash_claim.as_bytes());
-    let result = hasher.result();
-    let digest = format!("{:x}", result);
-    digest.len() == 32 && digest.chars().all(|c| c.is_ascii_hexdigit())
+    md5_hash_claim.len() == 32 && md5_hash_claim.chars().all(|c| c.is_ascii_hexdigit())
 }
