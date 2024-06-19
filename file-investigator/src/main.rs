@@ -4,12 +4,17 @@ use md5::Digest;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::time::{Duration, Instant};
 
 mod cli_options;
+
+
+// TODO implement log levels for this function
 
 fn main() {
     // Turn this into a function for reading dir as input
     // Can implement full logging levels with this
+    let start = Instant::now();
     let file_args: cli_options::FileArgs = cli_options::FileArgs::parse();
 
     let dir_inpection = file_args.start_file_path;
@@ -74,7 +79,12 @@ fn main() {
     // add that information to master tracking list
     // recursion should occur out here instead of inside the function itself, this will allow for master tracking
     println!("total inspection {:?}", total_cnt);
-    println!("all files {:?} : ", total_file_ls)
+    println!("all files {:?} : ", total_file_ls);
+    let end = Instant::now();
+    let duration = end - start;
+
+    let milliseconds = duration.as_secs() * 1000 + duration.subsec_nanos() as u64 / 1_000_000;
+    println!("Execution time: {} milliseconds", milliseconds);
 }
 
 #[derive(Debug)]
@@ -95,6 +105,8 @@ pub struct FileCrawlStats {
     number_of_files: u16,
     // Total file sizes?
     directory_list: Vec<String>,
+    md5_matched_files: Vec<String>,
+    //grep_term_match_file: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -111,6 +123,7 @@ pub fn inspect_dir(
     hash_options: &HashOptions,
 ) -> FileCrawlStats {
     let mut found_dirs: Vec<String> = vec![];
+    let mut matched_md5_file: Vec<String> = vec![];
     let mut files_inspected = 0;
     match fs::read_dir(file_path) {
         Ok(entries) => {
@@ -145,9 +158,9 @@ pub fn inspect_dir(
                                             compute_file_hash(&path.display().to_string());
                                         // todo need matching logic
                                         let match_hash = hash_options.match_hash.clone().unwrap_or("defailt".to_string());
-                                        println!("{:?} : {:?}", match_hash, format!("{:?}", file_hash));
                                         if format!("{:?}", file_hash) == match_hash {
-                                            println!("MATCHED!")
+                                            // what to do if matched, add as return type 
+                                            matched_md5_file.push(path.display().to_string());
                                         }
                                         println!("Hash of file is  {:?}", file_hash);
                                     }
@@ -178,6 +191,7 @@ pub fn inspect_dir(
         file_path: file_path.to_string(),
         number_of_files: files_inspected,
         directory_list: found_dirs,
+        md5_matched_files: matched_md5_file
     };
     println!("file stats {:?}", file_stats);
 
